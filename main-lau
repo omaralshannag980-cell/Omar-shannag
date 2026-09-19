@@ -1,159 +1,127 @@
--- Carregando a biblioteca RedzLib V4
-local redzlib = loadstring(game:HttpGet("https://raw.githubusercontent.com/techwearhubofc/Redz/main/Source.lua"))()
-
--- Criando a janela
-local Window = redzlib:MakeWindow({
-  Title = "Tax gg hub [ Beta ] : Brookhaven 🏡RP",
-  SubTitle = "by : 7zn",
-  LoadText = "Tax gg hub Loading... by 7zn",
-  Flags = "Tax gg hub | TikTok: 9z_e.1"
-})
-
-Window:AddMinimizeButton({
-  Button = {
-    Image = "rbxassetid://130688450838044"
-  },
-  UICorner = {true, CornerRadius = UDim.new(0.5, 0)},
-  UIStroke = {false, {}}
-})
-
--- تنبيه ترحيبي
-redzlib:Notification("Tax gg hub", "تم تشغيل السكربت بنجاح\nby 7zn | TikTok: 9z_e.1", "success", 5)
-
--- [إصلاح] إنشاء التبويبات بالصيغة الصحيحة لـ RedzLib
-local SongsTab = Window:MakeTab("قائمة الأغاني والـ IDs", "music")
-local AntiTab = Window:MakeTab("المضادات والـ Anti", "shield")
-local CreditsTab = Window:MakeTab("الحقوق والمطور", "info")
-
----------------------------------------------------------------------
--- [1] نظام الصوتيات والأغاني المحسن
----------------------------------------------------------------------
-local LocalPlayer = game:GetService("Players").LocalPlayer
-
-local function playForEveryone(audioId)
-    local cleanId = tostring(audioId):match("%d+")
-    if not cleanId then
-        redzlib:Notification("تنبيه", "الـ ID المدخل غير صالح!", "error", 3)
-        return
-    end
-
-    local radio = LocalPlayer.Backpack:FindFirstChild("Radio") or LocalPlayer.Character:FindFirstChild("Radio") 
-               or LocalPlayer.Backpack:FindFirstChild("Boombox") or LocalPlayer.Character:FindFirstChild("Boombox")
-    
-    if radio then
-        local remote = radio:FindFirstChild("Remote") or radio:FindFirstChild("Server") or radio:FindFirstChildOfClass("RemoteEvent")
-        if remote and remote:IsA("RemoteEvent") then
-            remote:FireServer(cleanId)
-            redzlib:Notification("Tax gg hub", "تم تشغيل الصوت عبر الراديو لكي يسمعه الجميع!", "success", 3)
-        else
-            redzlib:Notification("تنبيه", "تم العثور على الراديو ولكن لم يتم ربطه تلقائياً.", "warning", 3)
-        end
-    else
-        local localSound = game:GetService("Workspace"):FindFirstChild("TaxGGLocalSound")
-        if not localSound then
-            localSound = Instance.new("Sound", game:GetService("Workspace"))
-            localSound.Name = "TaxGGLocalSound"
-        end
-        localSound.SoundId = "rbxassetid://" .. cleanId
-        localSound.Volume = 2
-        localSound:Play()
-        redzlib:Notification("Tax gg hub", "تنبيه: تم التشغيل محلياً (أنت فقط من يسمع) لعدم توفر راديو بيدك.", "warning", 4)
-    end
-end
-
--- [إصلاح] إضافة الأقسام والمدخلات للصيغة المتوافقة
-SongsTab:AddSection("التحكم بالتشغيل (by 7zn)")
-
-local customTrackID = ""
-SongsTab:AddTextBox("ضع ID مخصص هنا", "", false, function(value)
-    customTrackID = value
-end)
-
-SongsTab:AddButton("تشغيل الـ ID اليدوي 🌐", function()
-    if customTrackID ~= "" then
-        playForEveryone(customTrackID)
-    else
-        redzlib:Notification("تنبيه", "الرجاء كتابة ID أولاً", "error", 3)
-    end
-end)
-
-SongsTab:AddSection("قائمة الأكواد الخاصة بك (تبان للناس)")
-
-local userTracks = {
-    "95877137552489", "125861618879629", "134693931986753", "107273226047360", 
-    "124123680327164", "73721014572224", "87920916682123", "126581313655066", 
-    "12412368037164", "79193631928944", "85822106162452", "7984027399", 
-    "129963257934687", "93297302504653", "98313375960954", "3230475415", 
-    "71701207559451", "106330590409106", "71373562243752", "127666185347295", 
-    "9108676586"
-}
-
-for index, id in ipairs(userTracks) do
-    SongsTab:AddButton("🎵 تشغيل الكود رقم [" .. tostring(index) .. "]", function()
-        playForEveryone(id)
-    end)
-end
-
----------------------------------------------------------------------
--- [2] قسم المضادات والـ Anti
----------------------------------------------------------------------
-AntiTab:AddSection("حماية اللاعب (Anti-AFK)")
-
-local antiAFKEnabled = false
-AntiTab:AddToggle("تفعيل مضاد الطرد الخامل", false, function(state)
-    antiAFKEnabled = state
-    if antiAFKEnabled then
-        redzlib:Notification("Tax gg hub", "مضاد الطرد يعمل الآن بنجاح!", "success", 3)
-    end
-end)
-
+local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:Connect(function()
-    if antiAFKEnabled then
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+task.spawn(function()
+    while task.wait(45) do
+        pcall(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton1(Vector2.new(100, 100))
+        end)
     end
 end)
 
-AntiTab:AddSection("تخفيف اللاق وزيادة الفريمات (Anti-Lag)")
+local gui = Instance.new("ScreenGui")
+gui.Name = "AntiAFKGui"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = player:WaitForChild("PlayerGui")
 
-AntiTab:AddButton("تنظيف الخريطة (إزالة التأثيرات المسببة لللاق)", function()
-    local cleared = 0
-    for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
-            obj.Enabled = false
-            cleared = cleared + 1
-        elseif obj:IsA("PostEffect") then
-            obj.Enabled = false
-            cleared = cleared + 1
-        end
+local frame = Instance.new("Frame")
+frame.Name = "MainFrame"
+frame.Size = UDim2.new(0, 240, 0, 80)
+frame.Position = UDim2.new(0.05, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255, 255, 255)
+stroke.Thickness = 1.5
+stroke.Transparency = 0.3
+stroke.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 26)
+title.BackgroundTransparency = 1
+title.Text = "🛡 Anti-AFK"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = frame
+
+local timeLabel = Instance.new("TextLabel")
+timeLabel.Size = UDim2.new(1, 0, 0, 34)
+timeLabel.Position = UDim2.new(0, 0, 0, 30)
+timeLabel.BackgroundTransparency = 1
+timeLabel.Text = "00:00:00"
+timeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+timeLabel.Font = Enum.Font.Code
+timeLabel.TextSize = 22
+timeLabel.Parent = frame
+
+local dragging, dragInput, dragStart, startPos
+
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
-    redzlib:Notification("Tax gg hub", "تم تنظيف " .. tostring(cleared) .. " تأثير لاق بنجاح!", "success", 4)
 end)
 
-AntiTab:AddButton("نمط البطاطس (أعلى فريمات ممكنة للجميع)", function()
-    for _, v in pairs(game:GetDescendants()) do
-        if v:IsA("MeshPart") then
-            v.TextureID = ""
-        elseif v:IsA("Decal") or v:IsA("Texture") then
-            v:Destroy()
-        end
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
     end
-    redzlib:Notification("Tax gg hub", "تم تفعيل نمط الفريمات العالية والمظهر المبسط!", "success", 4)
 end)
 
----------------------------------------------------------------------
--- [3] تبويب الحقوق والمطور
----------------------------------------------------------------------
-CreditsTab:AddSection("معلومات السكربت")
-
-CreditsTab:AddButton("اسم السكربت: Tax gg hub", function() end)
-CreditsTab:AddButton("المطور الرئيسي: 7zn", function() end)
-
-CreditsTab:AddSection("التواصل والدعم")
-
-CreditsTab:AddButton("حساب التيك توك: 9z_e.1", function() 
-    setclipboard("9z_e.1")
-    redzlib:Notification("Tax gg hub", "تم نسخ حساب التيك توك 9z_e.1 إلى الحافظة!", "success", 3)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        updateDrag(input)
+    end
 end)
 
+local startTime = tick()
+
+task.spawn(function()
+    while task.wait(1) do
+        local elapsed = tick() - startTime
+        local h = math.floor(elapsed / 3600)
+        local m = math.floor((elapsed % 3600) / 60)
+        local s = math.floor(elapsed % 60)
+        timeLabel.Text = string.format("%02d:%02d:%02d", h, m, s)
+    end
+end)
+
+local transitionTime = 60
+
+RunService.RenderStepped:Connect(function()
+    local elapsed = tick() - startTime
+    local t = math.clamp(elapsed / transitionTime, 0, 1)
+    frame.BackgroundColor3 = Color3.fromRGB(math.floor(255 * t), 0, 0)
+end)
+
+print("Anti-AFK Script Loaded")
