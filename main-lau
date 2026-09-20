@@ -24,7 +24,11 @@ gui.Name = "AntiAFKGui"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.DisplayOrder = 999999
+gui.Enabled = true
+
+local parentGui = (gethui and gethui()) or player:WaitForChild("PlayerGui")
+gui.Parent = parentGui
 
 local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
@@ -33,6 +37,7 @@ frame.Position = UDim2.new(0.05, 0, 0.1, 0)
 frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 frame.BorderSizePixel = 0
 frame.Active = true
+frame.Visible = true
 frame.Parent = gui
 
 local corner = Instance.new("UICorner")
