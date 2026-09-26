@@ -1,132 +1,155 @@
+-- ============================================
+-- Anti-AFK Script for Roblox (Client-Side)
+-- ============================================
+
+-- الخدمات الأساسية
 local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
 
-local player = Players.LocalPlayer
+-- المتغيرات الأساسية
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local startTime = tick() -- وقت بدء تشغيل السكربت
 
-player.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
+-- ============================================
+-- 1. تعطيل حدث الطرد بسبب الخمول (Idled)
+-- ============================================
+-- الطريقة الأولى: محاولة تعطيل الاتصال مباشرة (تعمل مع بعض المنفذين)
+local success, connections = pcall(function()
+    return getconnections(LocalPlayer.Idled)
 end)
 
-task.spawn(function()
-    while task.wait(45) do
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton1(Vector2.new(100, 100))
-        end)
+if success and connections then
+    for _, v in pairs(connections) do
+        if v["Disable"] then
+            v["Disable"](v)
+        elseif v["Disconnect"] then
+            v["Disconnect"](v)
+        end
     end
-end)
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "AntiAFKGui"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.DisplayOrder = 999999
-gui.Enabled = true
-
-local parentGui = (gethui and gethui()) or player:WaitForChild("PlayerGui")
-gui.Parent = parentGui
-
-local frame = Instance.new("Frame")
-frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 240, 0, 80)
-frame.Position = UDim2.new(0.05, 0, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Visible = true
-frame.Parent = gui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = frame
-
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(255, 255, 255)
-stroke.Thickness = 1.5
-stroke.Transparency = 0.3
-stroke.Parent = frame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 26)
-title.BackgroundTransparency = 1
-title.Text = "🛡 Anti-AFK"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.Parent = frame
-
-local timeLabel = Instance.new("TextLabel")
-timeLabel.Size = UDim2.new(1, 0, 0, 34)
-timeLabel.Position = UDim2.new(0, 0, 0, 30)
-timeLabel.BackgroundTransparency = 1
-timeLabel.Text = "00:00:00"
-timeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-timeLabel.Font = Enum.Font.Code
-timeLabel.TextSize = 22
-timeLabel.Parent = frame
-
-local dragging, dragInput, dragStart, startPos
-
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    frame.Position = UDim2.new(
-        startPos.X.Scale,
-        startPos.X.Offset + delta.X,
-        startPos.Y.Scale,
-        startPos.Y.Offset + delta.Y
-    )
+else
+    -- الطريقة الثانية: استخدام VirtualUser (تعمل دائمًا تقريبًا)
+    local VirtualUser = game:GetService("VirtualUser")
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
+    end)
 end
 
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
+-- ============================================
+-- 2. دالة النقر في منتصف الشاشة
+-- ============================================
+local function clickCenterScreen()
+    local viewport = Camera.ViewportSize
+    local centerX = viewport.X / 2
+    local centerY = viewport.Y / 2
+    
+    -- محاكاة ضغطة زر الفأرة الأيسر (Down ثم Up)
+    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+    task.wait(0.05) -- تأخير بسيط لمحاكاة نقر واقعي
+    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 1)
+end
 
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
+-- ============================================
+-- 3. إنشاء الواجهة الرسومية (GUI)
+-- ============================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AntiAFK_GUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- الإطار الرئيسي (الخلفية)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 320, 0, 160)
+mainFrame.Position = UDim2.new(0.5, -160, 0, 20) -- في أعلى منتصف الشاشة
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0) -- يبدأ أسود
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- زوايا دائرية للإطار
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+-- نص المؤقت
+local timerLabel = Instance.new("TextLabel")
+timerLabel.Name = "TimerLabel"
+timerLabel.Size = UDim2.new(1, 0, 0, 50)
+timerLabel.Position = UDim2.new(0, 0, 0, 25)
+timerLabel.BackgroundTransparency = 1
+timerLabel.Text = "00:00"
+timerLabel.TextColor3 = Color3.new(1, 1, 1)
+timerLabel.TextScaled = false
+timerLabel.TextSize = 36
+timerLabel.Font = Enum.Font.GothamBold
+timerLabel.Parent = mainFrame
+
+-- نص حالة Anti-AFK
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(1, 0, 0, 30)
+statusLabel.Position = UDim2.new(0, 0, 0, 80)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Anti-AFK: نشط ✅"
+statusLabel.TextColor3 = Color3.new(0.8, 1, 0.8)
+statusLabel.TextSize = 16
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Parent = mainFrame
+
+-- نص آخر نقرة
+local lastClickLabel = Instance.new("TextLabel")
+lastClickLabel.Name = "LastClickLabel"
+lastClickLabel.Size = UDim2.new(1, 0, 0, 20)
+lastClickLabel.Position = UDim2.new(0, 0, 0, 115)
+lastClickLabel.BackgroundTransparency = 1
+lastClickLabel.Text = "آخر نقرة: الآن"
+lastClickLabel.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+lastClickLabel.TextSize = 12
+lastClickLabel.Font = Enum.Font.Gotham
+lastClickLabel.Parent = mainFrame
+
+-- ============================================
+-- 4. حلقة التحديث الرئيسية (RunService)
+-- ============================================
+local elapsedSinceLastClick = 0
+local CLICK_INTERVAL = 600 -- 10 دقائق = 600 ثانية
+
+RunService.RenderStepped:Connect(function(deltaTime)
+    -- ------ تحديث المؤقت ------
+    local totalSeconds = math.floor(tick() - startTime)
+    local minutes = math.floor(totalSeconds / 60)
+    local seconds = totalSeconds % 60
+    timerLabel.Text = string.format("%02d:%02d", minutes, seconds)
+
+    -- ------ التدرج اللوني (أسود ← أحمر ← أسود) ------
+    -- نستخدم دالة الجيب لإنشاء تدرج سلس
+    -- الفترة الكاملة للتدرج = 60 ثانية (30 للذهاب و30 للعودة)
+    local cycleTime = (tick() % 60) / 60 -- قيمة بين 0 و 1
+    local t = (math.sin(cycleTime * math.pi * 2 - math.pi / 2) + 1) / 2 -- قيمة بين 0 و 1
+
+    -- حساب اللون: من الأسود (0,0,0) إلى الأحمر (1,0,0)
+    local r = t
+    local g = 0
+    local b = 0
+    mainFrame.BackgroundColor3 = Color3.new(r, g, b)
+
+    -- ------ التحقق من وقت النقر ------
+    elapsedSinceLastClick = elapsedSinceLastClick + deltaTime
+
+    if elapsedSinceLastClick >= CLICK_INTERVAL then
+        clickCenterScreen()
+        elapsedSinceLastClick = 0 -- إعادة تعيين العداد
+        lastClickLabel.Text = "آخر نقرة: " .. os.date("%H:%M:%S")
+        print("[Anti-AFK] تم النقر في منتصف الشاشة")
     end
 end)
 
-frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-    or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input == dragInput then
-        updateDrag(input)
-    end
-end)
-
-local startTime = tick()
-
-task.spawn(function()
-    while task.wait(1) do
-        local elapsed = tick() - startTime
-        local h = math.floor(elapsed / 3600)
-        local m = math.floor((elapsed % 3600) / 60)
-        local s = math.floor(elapsed % 60)
-        timeLabel.Text = string.format("%02d:%02d:%02d", h, m, s)
-    end
-end)
-
-local transitionTime = 60
-
-RunService.RenderStepped:Connect(function()
-    local elapsed = tick() - startTime
-    local t = math.clamp(elapsed / transitionTime, 0, 1)
-    frame.BackgroundColor3 = Color3.fromRGB(math.floor(255 * t), 0, 0)
-end)
-
-print("Anti-AFK Script Loaded")
+-- ============================================
+-- 5. إشعار عند بدء التشغيل
+-- ============================================
+print("✅ تم تشغيل سكربت Anti-AFK بنجاح!")
+print("⏱️ سيتم النقر تلقائيًا كل 10 دقائق.")
+print("🎨 ستتغير خلفية الواجهة بين الأسود والأحمر بشكل متدرج.")
